@@ -1,0 +1,109 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.3"
+
+    defaultConfig {
+        applicationId "com.example.myapplication"
+        minSdkVersion 16
+        targetSdkVersion 29
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+
+task installAndOpenTask(dependsOn: 'bundleDebug') {
+    doLast {
+        installAndOpen()
+    }
+}
+
+task OnlyInstallAndOpenTask() {
+    doLast {
+        installAndOpen()
+    }
+}
+
+/**
+ * 安装和打开apk的方法
+ */
+void installAndOpen() {
+    println "InstallAndOpen"
+    def isWindows = System.properties['os.name'].contains('windows') || System.properties['os.name'].contains('Windows')
+    println("System is " + System.properties['os.name'] + "  is Windows = " + isWindows)
+    def defaultApkPath = ""
+    if (isWindows) {//Windows系统
+        //defaultApkPath = rootDir.getAbsolutePath() + "\\xx\\xx\\xx\\xx\\windows下apk的路径"
+        defaultApkPath = rootDir.getAbsolutePath() + "\\app\\build\\outputs\\apk\\debug"
+    } else {//Linux系统
+        defaultApkPath = rootDir.getAbsolutePath() + "/xxp/xx/xx/xx/Linux下apk的路径"
+    }
+    println defaultApkPath
+    def apkFiles = new File(defaultApkPath)
+    println apkFiles.getClass()
+    //记录最新的文件修改时间
+    Long lastModifiedTime = Long.MIN_VALUE
+    def apkPath = ""
+    if (apkFiles.isDirectory()) {
+        apkFiles.listFiles().toList().forEach { file ->
+            if (file.isFile() && file.name.endsWith("apk")) {
+                if (file.lastModified() > lastModifiedTime) {
+                    lastModifiedTime = file.lastModified()
+                    apkPath = file.path
+                }
+            }
+        }
+    }else {
+        println "path no isDirectory"
+    }
+    if (apkPath.length() == 0) {
+        return
+    }
+    //安装apk adb install 命令
+    def command = "adb install -r -d ${apkPath}"
+    println command
+    def result = command.execute()
+    def resultText = result.text
+    println resultText
+    if (resultText.contains("Success")) {
+        //启动apk 指定要启动的Activity啦
+        def startCommand = "adb shell am start 包名/类名"
+        println startCommand
+        def startResult = startCommand.execute()
+        println startResult.text
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: "libs", include: ["*.jar"])
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation 'androidx.core:core-ktx:1.1.0'
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+    implementation 'com.google.android.material:material:1.0.0'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.1.0'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.1.0'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+
+}
